@@ -8,6 +8,14 @@ namespace JSAM
     [AddComponentMenu("AudioManager/Audio Trigger Feedback 2D")]
     public class AudioTriggerFeedback2D : BaseAudioTriggerFeedback
     {
+        private void TriggerSound(Collider2D collision)
+        {
+            if (triggersWith.Contains(collision.gameObject.layer))
+            {
+                AudioManager.PlaySound(audio, transform);
+            }
+        }
+
         private void OnTriggerEnter2D(Collider2D collision)
         {
             if (triggerEvent == TriggerEvent.OnTriggerEnter) TriggerSound(collision);
