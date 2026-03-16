@@ -669,7 +669,7 @@ namespace JSAM.JSAMEditor
                     using (new EditorGUI.DisabledScope(!useCustomNames.boolValue))
                     {
                         blontent = new GUIContent("Assembly Name", "Overrides the Assembly name used to search for your enum script. If left empty, AudioManager looks for your enum scripts in Assembly-CSharp.");
-                        RenderCodeField(AssemblyName, blontent, false, "Change Assembly name", "");
+                        RenderCodeField(AssemblyName, blontent, true, "Change Assembly name", "");
 
                         blontent = new GUIContent("Sound Enum", "Change the name enum name used to refer to your sounds. Generated enums will appear as <Sound Namespace>.<Sound Enum>.<Sound Name>.");
                         RenderCodeField(soundEnum, blontent, false, "Change Sound Enum Name", asset.defaultSoundEnum);
