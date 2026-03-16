@@ -95,7 +95,9 @@ namespace JSAM
                 case PlayState.Playing: // Just paused in-editor
                     Helper.AudioSource.Pause();
                     break;
+#pragma warning disable CS0618 // Type or member is obsolete
                 case PlayState.Delayed:
+#pragma warning restore CS0618 // Type or member is obsolete
                     break;
             }
 #if PrintStuff

@@ -14,10 +14,10 @@ namespace JSAM
             "unless said Audio File Object has a Mixer override set")]
         public AudioMixerGroup DefaultMixerGroup;
 
-        [Header("Optional:")]
         /// <summary>
         /// When no existing preference is found, will set the Audio Track to this value
         /// </summary>
+        [Header("Optional:")]
         [Tooltip("When no existing preference is found, will set the Audio Track to this value")]
         public float DefaultVolume = 1;
         /// <summary>
