@@ -71,6 +71,17 @@ namespace JSAM
             PlayerPrefs.Save();
         }
 
+        public void InitVolumeTracks()
+        {
+            foreach (var t in Settings.AllTracks)
+            {
+                runtimeVolume[t] = new VolumeData
+                {
+                    Volume = t.DefaultVolume
+                };
+            }
+        }
+
         public void LoadVolumeSettings()
         {
             if (!Settings.SaveVolumeToPlayerPrefs) return;
@@ -172,6 +183,10 @@ namespace JSAM
             if (Settings.SaveVolumeToPlayerPrefs)
             {
                 LoadVolumeSettings();
+            }
+            else
+            {
+                InitVolumeTracks();
             }
 
             sourceHolder = new GameObject("Sources").transform;
