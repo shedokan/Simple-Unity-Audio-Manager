@@ -1,5 +1,4 @@
-﻿using System.Collections;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using UnityEngine;
 
 namespace JSAM
@@ -33,7 +32,7 @@ namespace JSAM
         public string musicNamespace;
         public string musicNamespaceGenerated;
 
-        public string AssemblyName;
+        [SerializeField] public AssemblySelector customAssembly = new();
 
         public string soundEnum;
         public string defaultSoundEnum { get { return name.ConvertToAlphanumeric() + "Sounds"; } }
@@ -67,6 +66,23 @@ namespace JSAM
         }
 
         public bool IsLoaded() => AudioManagerInternal.Instance.IsLibraryLoaded(this);
+
+        public string FullSoundEnumGenerated => FullGeneratedEnum(soundEnumGenerated, soundNamespaceGenerated);
+        public string FullMusicEnumGenerated => FullGeneratedEnum(musicEnumGenerated, musicNamespaceGenerated);
+
+        public System.Type SoundEnumGeneratedType => FullGeneratedEnumType(soundEnumGenerated, soundNamespaceGenerated);
+        public System.Type MusicEnumGeneratedType => FullGeneratedEnumType(musicEnumGenerated, musicNamespaceGenerated);
+
+        public static string FullGeneratedEnum(string enumName, string customNamespace) {
+            if (!customNamespace.IsNullEmptyOrWhiteSpace())
+            {
+                enumName = customNamespace + "." + enumName;
+            }
+            
+            return enumName;
+        }
+
+        public static System.Type FullGeneratedEnumType(string enumName, string customNamespace) => GetEnumType(FullGeneratedEnum(enumName, customNamespace));
 
         /// <summary>
         /// Returns an enum type given it's name as a string

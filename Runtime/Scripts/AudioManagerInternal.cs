@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
+using System.Reflection;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using Unity.Collections.LowLevel.Unsafe;
@@ -903,51 +905,56 @@ namespace JSAM
             var newLib = new LoadedLibrary { Library = l, Users = 1 };
 
             List<string> enums = new List<string>();
-            var soundType = l.soundEnumGenerated;
+            var soundType = l.FullSoundEnumGenerated;
+            var musicType = l.FullMusicEnumGenerated;
 
-            if (!l.soundNamespaceGenerated.IsNullEmptyOrWhiteSpace())
+            var assembly = l.customAssembly.GetAssembly();
+            if (assembly == null)
             {
-                soundType = l.soundNamespaceGenerated + "." + soundType;
+                Debug.LogError($"[AudioLibrary] Could not load assembly: {l.customAssembly.AssemblyName}");
+                return;
             }
 
-            var assembly = l.AssemblyName.IsNullEmptyOrWhiteSpace() || !l.useCustomNames ? "Assembly-CSharp" : l.AssemblyName;
-
-            var soundAssembly = soundType + ", " + assembly;
-
-            Type enumType = Type.GetType(soundAssembly);
-            enums.AddRange(Enum.GetNames(enumType));
-
-            newLib.SoundKeys = new long[enums.Count];
-            for (int i = 0; i < l.Sounds.Count; i++)
+            Type soundEnumType = assembly.GetType(soundType);
+            if (soundEnumType != null)
             {
-                l.Sounds[i].Initialize();
-                var soundName = soundType + "." + enums[i];
-                long key = ComputeEnumHash(enumType, i);
-                newLib.SoundKeys[i] = key;
-                audioFileLookup.Add(soundName, l.Sounds[i]);
-                enumNameLookup[key] = soundName;
+                enums.AddRange(Enum.GetNames(soundEnumType));
+
+                newLib.SoundKeys = new long[enums.Count];
+                for (int i = 0; i < l.Sounds.Count; i++)
+                {
+                    l.Sounds[i].Initialize();
+                    var soundName = soundType + "." + enums[i];
+                    long key = ComputeEnumHash(soundEnumType, i);
+                    newLib.SoundKeys[i] = key;
+                    audioFileLookup.Add(soundName, l.Sounds[i]);
+                    enumNameLookup[key] = soundName;
+                }
+                enums.Clear();
+            }
+            else
+            {
+                Debug.LogError($"[AudioLibrary] Could not find sound enum type: {soundType}");
             }
 
-            enums.Clear();
-            var musicType = l.musicEnumGenerated;
-
-            if (!l.musicNamespaceGenerated.IsNullEmptyOrWhiteSpace())
+            Type musicEnumType = assembly.GetType(musicType);
+            if (musicEnumType != null)
             {
-                musicType = l.musicNamespaceGenerated + "." + musicType;
+                enums.AddRange(Enum.GetNames(musicEnumType));
+
+                newLib.MusicKeys = new long[enums.Count];
+                for (int i = 0; i < l.Music.Count; i++)
+                {
+                    var musicName = musicType + "." + enums[i];
+                    long key = ComputeEnumHash(musicEnumType, i);
+                    newLib.MusicKeys[i] = key;
+                    audioFileLookup.Add(musicName, l.Music[i]);
+                    enumNameLookup[key] = musicName;
+                }
             }
-            var musicAssembly = musicType + ", " + assembly;
-
-            enumType = Type.GetType(musicAssembly);
-            enums.AddRange(Enum.GetNames(enumType));
-
-            newLib.MusicKeys = new long[enums.Count];
-            for (int i = 0; i < l.Music.Count; i++)
+            else
             {
-                var musicName = musicType + "." + enums[i];
-                long key = ComputeEnumHash(enumType, i);
-                newLib.MusicKeys[i] = key;
-                audioFileLookup.Add(musicName, l.Music[i]);
-                enumNameLookup[key] = musicName;
+                Debug.LogError($"[AudioLibrary] Could not find music enum type: {musicType}");
             }
 
             loadedLibraries.Add(l, newLib);

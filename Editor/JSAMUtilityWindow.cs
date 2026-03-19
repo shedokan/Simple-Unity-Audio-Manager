@@ -1,7 +1,8 @@
-﻿using System.Collections;
+﻿using System;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEditor;
+using Object = UnityEngine.Object;
 
 namespace JSAM.JSAMEditor
 {
@@ -12,6 +13,8 @@ namespace JSAM.JSAMEditor
             public GUIContent content;
             public string text;
             public bool useTextArea;
+            public Object value;
+            public Type valueType;
         }
 
         string windowName;
@@ -20,9 +23,10 @@ namespace JSAM.JSAMEditor
         bool focused = false;
         static bool quickReferenceGuide = true;
 
-        List<CustomField> fields = new List<CustomField>();
+        List<CustomField> fields = new();
 
         public static System.Action<string[]> onSubmitField;
+        public static System.Action<Object[]> onSubmitObjectField;
 
         public static JSAMUtilityWindow Init(string _windowName, bool _allowEnterKey, bool _allowEscapeKey)
         {
@@ -41,37 +45,52 @@ namespace JSAM.JSAMEditor
 
         public void AddField(GUIContent content, string startingText = "", bool useTextArea = false)
         {
-            var newField = new CustomField();
-            newField.content = content;
-            newField.text = startingText;
-            newField.useTextArea = useTextArea;
-            fields.Add(newField);
+            fields.Add(new CustomField
+            {
+                content = content,
+                text = startingText,
+                useTextArea = useTextArea
+            });
+        }
+
+        public void AddTypeField(GUIContent content, Object value, Type type)
+        {
+            fields.Add(new CustomField
+            {
+                content = content,
+                value = value,
+                valueType = type
+            });
         }
 
         private void OnGUI()
         {
-            for (int i = 0; i < fields.Count; i++)
+            foreach (CustomField field in fields)
             {
-                if (fields[i].content != GUIContent.none)
+                if (field.content != GUIContent.none)
                 {
-                    EditorGUILayout.LabelField(fields[i].content);
+                    EditorGUILayout.LabelField(field.content);
                 }
+
                 if (!focused) GUI.SetNextControlName("TextBox");
-                if (!fields[i].useTextArea)
+                if (field.valueType != null)
                 {
-                    fields[i].text = EditorGUILayout.TextField(fields[i].text);
+                    field.value =
+                        EditorGUILayout.ObjectField(field.value, field.valueType, allowSceneObjects: false);
                 }
                 else
                 {
-                    fields[i].text = EditorGUILayout.TextArea(fields[i].text);
+                    field.text = !field.useTextArea 
+                        ? EditorGUILayout.TextField(field.text)
+                        : EditorGUILayout.TextArea(field.text);
                 }
+
                 if (!focused)
                 {
                     GUI.FocusControl("TextBox");
                     focused = true;
                 }
                 EditorGUILayout.Space();
-                
             }
             List<string> tipText = new List<string>();
             if (allowEscapeKey)
@@ -111,12 +130,17 @@ namespace JSAM.JSAMEditor
 
         void SubmitText()
         {
-            string[] text = new string[fields.Count];
+            List<string> text = new List<string>();
+            List<Object> values = new List<Object>();
             for (int i = 0; i < fields.Count; i++)
             {
-                text[i] = fields[i].text;
+                if (fields[i].valueType != null)
+                    values.Add(fields[i].value);
+                else
+                    text.Add(fields[i].text);
             }
-            onSubmitField?.Invoke(text);
+            onSubmitField?.Invoke(text.ToArray());
+            onSubmitObjectField?.Invoke(values.ToArray());
             window.Close();
         }
 

@@ -6,6 +6,8 @@ using UnityEditor.Callbacks;
 using System;
 using System.IO;
 using System.Linq;
+using System.Reflection;
+using Object = UnityEngine.Object;
 
 namespace JSAM.JSAMEditor
 {
@@ -244,7 +246,7 @@ namespace JSAM.JSAMEditor
         SerializedProperty useCustomNames;
         SerializedProperty generatedName;
 
-        SerializedProperty AssemblyName;
+        SerializedProperty CustomAssembly;
 
         SerializedProperty soundEnum;
         SerializedProperty soundEnumGenerated;
@@ -268,7 +270,7 @@ namespace JSAM.JSAMEditor
         {
             useCustomNames = FindProp(nameof(asset.useCustomNames));
 
-            AssemblyName = FindProp(nameof(asset.AssemblyName));
+            CustomAssembly = FindProp(nameof(asset.customAssembly));
 
             soundEnum = FindProp(nameof(asset.soundEnum));
             soundNamespace = FindProp(nameof(asset.soundNamespace));
@@ -299,29 +301,42 @@ namespace JSAM.JSAMEditor
 
             Window.Repaint();
         }
+        
+        public string FullGeneratedSoundName() {
+            string generatedSoundName = soundEnumGenerated.stringValue;
+            if (!soundNamespaceGenerated.stringValue.IsNullEmptyOrWhiteSpace())
+            {
+                generatedSoundName = soundNamespaceGenerated.stringValue + "." + generatedSoundName;
+            }
+            return generatedSoundName;
+        }
 
+        public string FullGeneratedMusicName() {
+            string generatedMusicName = musicEnumGenerated.stringValue;
+            if (!musicNamespaceGenerated.stringValue.IsNullEmptyOrWhiteSpace())
+            {
+                generatedMusicName = musicNamespaceGenerated.stringValue + "." + generatedMusicName;
+            }
+            return generatedMusicName;
+        }
+        
         void DocumentAudioFiles()
         {
             {
                 List<string> registeredNames = new List<string>();
-                string generatedSoundName = soundEnumGenerated.stringValue;
-                if (!soundNamespaceGenerated.stringValue.IsNullEmptyOrWhiteSpace())
-                {
-                    generatedSoundName = soundNamespaceGenerated.stringValue + "." + generatedSoundName;
-                }
 
-                var type = AudioLibrary.GetEnumType(generatedSoundName);
+                Type type = AudioLibrary.FullGeneratedEnumType(soundEnumGenerated.stringValue, soundNamespaceGenerated.stringValue);
                 if (type != null) registeredNames.AddRange(new List<string>(Enum.GetNames(type)));
 
                 List<string> libraryNames = new List<string>();
-                for (int i = 0; i < asset.Sounds.Count; i++)
+                foreach (SoundFileObject sa in asset.Sounds)
                 {
-                    libraryNames.Add(asset.Sounds[i].SafeName);
+                    libraryNames.Add(sa.SafeName);
                 }
                 // Get all sound names that are registered but not in the library
-                missingSoundNames = new List<string>(registeredNames.Except(libraryNames));
+                missingSoundNames = registeredNames.Except(libraryNames).ToList();
                 // Get all sound names that are in the library but aren't registered
-                newSoundNames = new List<string>(libraryNames.Except(registeredNames));
+                newSoundNames = libraryNames.Except(registeredNames).ToList();
 
                 if (missingSoundNames == null) missingSoundNames = new List<string>();
                 if (newSoundNames == null) newSoundNames = new List<string>();
@@ -330,27 +345,21 @@ namespace JSAM.JSAMEditor
             {
                 List<string> registeredNames = new List<string>();
 
-                string generatedMusicName = musicEnumGenerated.stringValue;
-                if (!musicNamespaceGenerated.stringValue.IsNullEmptyOrWhiteSpace())
-                {
-                    generatedMusicName = musicNamespaceGenerated.stringValue + "." + generatedMusicName;
-                }
-                
-                var type = AudioLibrary.GetEnumType(generatedMusicName);
+                Type type = AudioLibrary.FullGeneratedEnumType(musicEnumGenerated.stringValue, musicNamespaceGenerated.stringValue);
                 if (type != null) registeredNames.AddRange(new List<string>(Enum.GetNames(type)));
 
                 List<string> libraryNames = new List<string>();
-                for (int i = 0; i < asset.Music.Count; i++)
+                foreach (MusicFileObject ma in asset.Music)
                 {
-                    libraryNames.Add(asset.Music[i].SafeName);
+                    libraryNames.Add(ma.SafeName);
                 }
                 // Get all sound names that are registered but not in the library
-                missingMusicNames = new List<string>(registeredNames.Except(libraryNames));
+                missingMusicNames = registeredNames.Except(libraryNames).ToList();
                 // Get all sound names that are in the library but aren't registered
-                newMusicNames = new List<string>(libraryNames.Except(registeredNames));
+                newMusicNames = libraryNames.Except(registeredNames).ToList();
 
-                if (missingMusicNames == null) missingMusicNames = new List<string>();
-                if (newMusicNames == null) newMusicNames = new List<string>();
+                missingMusicNames ??= new List<string>();
+                newMusicNames ??= new List<string>();
             }
         }
 
@@ -669,7 +678,7 @@ namespace JSAM.JSAMEditor
                     using (new EditorGUI.DisabledScope(!useCustomNames.boolValue))
                     {
                         blontent = new GUIContent("Assembly Name", "Overrides the Assembly name used to search for your enum script. If left empty, AudioManager looks for your enum scripts in Assembly-CSharp.");
-                        RenderCodeField(AssemblyName, blontent, true, "Change Assembly name", "");
+                        RenderCodeField(CustomAssembly, blontent, true, "Change Assembly", "");
 
                         blontent = new GUIContent("Sound Enum", "Change the name enum name used to refer to your sounds. Generated enums will appear as <Sound Namespace>.<Sound Enum>.<Sound Name>.");
                         RenderCodeField(soundEnum, blontent, false, "Change Sound Enum Name", asset.defaultSoundEnum);
@@ -1356,8 +1365,8 @@ namespace JSAM.JSAMEditor
                 }
             }
 
-            string fileName = "//AudioEnums - " + asset.SafeName + ".cs";
-            string prevName = "//AudioEnums - " + asset.generatedName + ".cs";
+            string fileName = "//AudioEnums_" + asset.SafeName + ".cs";
+            string prevName = "//AudioEnums_" + asset.generatedName + ".cs";
 
             if (!JSAMEditorHelper.GenerateFolderStructureAt(filePath))
             {
@@ -1423,11 +1432,14 @@ namespace JSAM.JSAMEditor
             filePath += fileName;
             File.WriteAllText(filePath, string.Empty);
             StreamWriter writer = new StreamWriter(filePath, true);
+            writer.WriteLine("using UnityEngine.Scripting;");
+            writer.WriteLine();
             if (soundNamespace.stringValue.Length > 0 && useCustomNames.boolValue)
             {
                 writer.WriteLine("namespace " + soundNamespace.stringValue + " {");
             }
 
+            writer.WriteLine("    [Preserve]");
             writer.WriteLine("    public enum " + soundEnumName + " {");
 
             if (soundLibrary != null)
@@ -1454,6 +1466,7 @@ namespace JSAM.JSAMEditor
                 writer.WriteLine("namespace " + musicNamespace.stringValue + " {");
             }
 
+            writer.WriteLine("    [Preserve]");
             writer.WriteLine("    public enum " + musicEnumName + " {");
 
             if (musicLibrary != null)
@@ -1503,26 +1516,62 @@ namespace JSAM.JSAMEditor
         {
             EditorGUILayout.BeginHorizontal(GUI.skin.box);
 
+            string displayValue = "";
+            bool isAssemblySelector = property.type == "AssemblySelector";
+
             if (asset.useCustomNames)
             {
-                EditorGUILayout.LabelField(content, new GUIContent(property.stringValue));
+                if (isAssemblySelector)
+                {
+                    displayValue = property.FindPropertyRelative("assemblyName").stringValue;
+                    if (displayValue.IsNullEmptyOrWhiteSpace()) displayValue = "None (Assembly-CSharp)";
+                }
+                else
+                {
+                    displayValue = property.stringValue;
+                }
             }
             else
             {
-                EditorGUILayout.LabelField(content, new GUIContent(defaultName));
+                displayValue = defaultName;
             }
+
+            EditorGUILayout.LabelField(content, new GUIContent(displayValue));
 
             if (JSAMEditorHelper.CondensedButton("Edit"))
             {
                 var utility = JSAMUtilityWindow.Init(title, true, true);
-                utility.AddField(content, property.stringValue);
-                JSAMUtilityWindow.onSubmitField += ChangeCodeNames;
-                nextAllowPeriods = allowPeriods;
                 nextProperty = property;
+                if (isAssemblySelector)
+                {
+                    var assetProp = property.FindPropertyRelative("assemblyAsset");
+                    utility.AddTypeField(content, assetProp.objectReferenceValue, typeof(UnityEditorInternal.AssemblyDefinitionAsset));
+                    JSAMUtilityWindow.onSubmitObjectField -= ChangeAssemblySelectorAsset;
+                    JSAMUtilityWindow.onSubmitObjectField += ChangeAssemblySelectorAsset;
+                }
+                else
+                {
+                    utility.AddField(content, property.stringValue);
+                    JSAMUtilityWindow.onSubmitField -= ChangeCodeNames;
+                    JSAMUtilityWindow.onSubmitField += ChangeCodeNames;
+                    nextAllowPeriods = allowPeriods;
+                }
             }
-            if (JSAMEditorHelper.CondensedButton("Set to Default"))
+
+            if (isAssemblySelector)
             {
-                property.stringValue = defaultName;
+                if (JSAMEditorHelper.CondensedButton("Clear"))
+                {
+                    property.FindPropertyRelative("assemblyAsset").objectReferenceValue = null;
+                    property.FindPropertyRelative("assemblyName").stringValue = string.Empty;
+                }
+            }
+            else
+            {
+                if (JSAMEditorHelper.CondensedButton("Set to Default"))
+                {
+                    property.stringValue = defaultName;
+                }
             }
             EditorGUILayout.EndHorizontal();
         }
@@ -1545,6 +1594,32 @@ namespace JSAM.JSAMEditor
             serializedObject.ApplyModifiedProperties();
             Repaint();
         }
+
+        void ChangeAssemblySelectorAsset(Object[] fields)
+        {
+            var assetProp = nextProperty.FindPropertyRelative("assemblyAsset");
+            var nameProp = nextProperty.FindPropertyRelative("assemblyName");
+
+            Object selectedAsset = fields[0];
+            assetProp.objectReferenceValue = selectedAsset;
+
+            if (selectedAsset != null)
+            {
+                string json = (selectedAsset as UnityEditorInternal.AssemblyDefinitionAsset).text;
+                var data = JsonUtility.FromJson<AsmdefData>(json);
+                nameProp.stringValue = data.name;
+            }
+            else
+            {
+                nameProp.stringValue = "";
+            }
+
+            serializedObject.ApplyModifiedProperties();
+            Repaint();
+        }
+
+        [Serializable]
+        private class AsmdefData { public string name; }
     }
 
     [CustomEditor(typeof(AudioLibrary))]
