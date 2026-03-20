@@ -358,7 +358,7 @@ namespace JSAM
             return AudioSource;
         }
 
-        public virtual void Stop(bool stopInstantly = true)
+        private void Stop(bool stopInstantly = true)
         {
             if (stopInstantly) AudioSource.Stop();
             StopAllCoroutines();
@@ -366,26 +366,8 @@ namespace JSAM
             AudioSource.loop = false;
             SpatializationTarget = null;
         }
-        
-        public bool Stop(BaseAudioFileObject a, Transform trans, bool stopInstantly)
-        {
-            if (!IsMatching(a, trans))
-                return false;
 
-            Stop(stopInstantly);
-            return true;
-        }
-        
-        public bool Stop(BaseAudioFileObject a, Vector3 pos, bool stopInstantly)
-        {
-            if (!IsMatching(a, pos))
-                return false;
-
-            Stop(stopInstantly);
-            return true;
-        }
-
-        public virtual void StopIfPlaying(bool stopInstantly = true)
+        public void StopIfPlaying(bool stopInstantly = true)
         {
             if (IsPlaying()) Stop(stopInstantly);
         }
@@ -418,13 +400,8 @@ namespace JSAM
 
         public virtual void SceneUnloaded(Scene scene)
         {
-            if (targetScene != "")
-            {
-                if (targetScene == scene.name)
-                {
-                    Stop();
-                }
-            }
+            if (targetScene != "" && targetScene == scene.name)
+                StopIfPlaying();
         }
 
         /// <summary>

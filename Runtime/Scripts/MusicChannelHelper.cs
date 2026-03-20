@@ -22,14 +22,5 @@ namespace JSAM
                 }
             }
         }
-
-        public override void Stop(bool stopInstantly = true)
-        {
-            base.Stop(stopInstantly);
-            if (stopInstantly)
-            {
-                AudioSource.Stop();
-            }
-        }
     }
 }

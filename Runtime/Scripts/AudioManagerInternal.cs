@@ -336,7 +336,7 @@ namespace JSAM
         }
 
         #region PlayMusic
-        public MusicChannelHelper PlayMusicInternal(MusicFileObject music, bool isMain)
+        internal MusicChannelHelper PlayMusicInternal(MusicFileObject music, bool isMain)
         {
             if (!PlaybackChecks(music)) return null;
 
@@ -347,7 +347,7 @@ namespace JSAM
         // TODO:
         // There must be an easier way to handle the different spatialiation setting than to 
         // duplicate the method like this
-        public MusicChannelHelper PlayMusicInternal(MusicFileObject music, Transform newTransform = null, MusicChannelHelper helper = null)
+        internal MusicChannelHelper PlayMusicInternal(MusicFileObject music, Transform newTransform = null, MusicChannelHelper helper = null)
         {
             if (!PlaybackChecks(music)) return null;
 
@@ -365,7 +365,7 @@ namespace JSAM
             return helper;
         }
 
-        public MusicChannelHelper PlayMusicInternal(MusicFileObject music, Vector3 position, MusicChannelHelper helper = null)
+        internal MusicChannelHelper PlayMusicInternal(MusicFileObject music, Vector3 position, MusicChannelHelper helper = null)
         {
             if (!PlaybackChecks(music)) return null;
 
@@ -385,7 +385,7 @@ namespace JSAM
         #endregion
 
         #region FadeMusic
-        public MusicChannelHelper FadeMusicInInternal(MusicFileObject music, float fadeInTime, bool isMain)
+        internal MusicChannelHelper FadeMusicInInternal(MusicFileObject music, float fadeInTime, bool isMain)
         {
             if (!PlaybackChecks(music)) return null;
 
@@ -411,7 +411,7 @@ namespace JSAM
             return helper;
         }
 
-        public MusicChannelHelper FadeMainMusicOutInternal(float fadeOutTime)
+        internal MusicChannelHelper FadeMainMusicOutInternal(float fadeOutTime)
         {
             if (!Application.isPlaying) return null;
 
@@ -428,12 +428,12 @@ namespace JSAM
             newHelper.Play();
             newHelper.AudioSource.time = MainMusic.AudioSource.time;
             newHelper.BeginFadeOut(fadeOutTime);
-            MainMusic.Stop();
+            MainMusic.StopIfPlaying();
 
             return newHelper;
         }
 
-        public MusicChannelHelper FadeMusicOutInternal(MusicFileObject music, float fadeOutTime)
+        internal MusicChannelHelper FadeMusicOutInternal(MusicFileObject music, float fadeOutTime)
         {
             if (!PlaybackChecks(music)) return null;
 
@@ -450,7 +450,7 @@ namespace JSAM
             return helper;
         }
 
-        public MusicChannelHelper FadeMusicOutInternal(MusicChannelHelper helper, float fadeOutTime)
+        internal MusicChannelHelper FadeMusicOutInternal(MusicChannelHelper helper, float fadeOutTime)
         {
             if (!Application.isPlaying) return null;
 
@@ -474,7 +474,7 @@ namespace JSAM
         #endregion
 
         #region StopMusic
-        public void StopAllMusicInternal(bool stopInstantly)
+        internal void StopAllMusicInternal(bool stopInstantly)
         {
             MainMusic.StopIfPlaying(stopInstantly);
             
@@ -484,49 +484,49 @@ namespace JSAM
             }
         }
 
-        public MusicChannelHelper StopMusicInternal(MusicFileObject music, Transform t, bool stopInstantly)
+        internal MusicChannelHelper StopMusicInternal(MusicFileObject music, Transform t, bool stopInstantly)
         {
             if (!PlaybackChecks(music)) return null;
 
             // Check MainMusic first (it is not in musicHelpers)
-            if (MainMusic.Stop(music, t, stopInstantly))
+            if (MainMusic.StopIfPlaying(music, t, stopInstantly))
                 return MainMusic;
 
             foreach (MusicChannelHelper helper in musicHelpers)
             {
                 // TODO: Consider removing as helper is checking this
                 if (helper.AudioSource == null) return null; // Prevent issues when called during OnApplicationQuit
-                if (helper.Stop(music, t, stopInstantly))
+                if (helper.StopIfPlaying(music, t, stopInstantly))
                     return helper;
             }
             return null;
         }
 
-        public MusicChannelHelper StopMusicInternal(MusicFileObject music, Vector3 pos, bool stopInstantly)
+        internal MusicChannelHelper StopMusicInternal(MusicFileObject music, Vector3 pos, bool stopInstantly)
         {
             if (!PlaybackChecks(music)) return null;
 
             // Check MainMusic first (it is not in musicHelpers)
-            if (MainMusic.Stop(music, pos, stopInstantly))
+            if (MainMusic.StopIfPlaying(music, pos, stopInstantly))
                 return MainMusic;
 
             foreach (MusicChannelHelper helper in musicHelpers)
             {
                 if (helper.AudioSource == null) return null; // Prevent issues when called from OnDestroy
-                if (helper.Stop(music, pos, stopInstantly))
+                if (helper.StopIfPlaying(music, pos, stopInstantly))
                     return helper;
             }
             return null;
         }
 
-        public bool StopMusicIfPlayingInternal(MusicFileObject music, Transform trans = null, bool stopInstantly = true)
+        internal bool StopMusicIfPlayingInternal(MusicFileObject music, Transform trans = null, bool stopInstantly = true)
         {
             if (!IsMusicPlayingInternal(music, trans)) return false;
             StopMusicInternal(music, trans, stopInstantly);
             return true;
         }
 
-        public bool StopMusicIfPlayingInternal(MusicFileObject music, Vector3 pos, bool stopInstantly = true)
+        internal bool StopMusicIfPlayingInternal(MusicFileObject music, Vector3 pos, bool stopInstantly = true)
         {
             if (!IsMusicPlayingInternal(music, pos)) return false;
             StopMusicInternal(music, pos, stopInstantly);
@@ -558,7 +558,7 @@ namespace JSAM
         }
 
         #region PlaySound
-        public SoundChannelHelper PlaySoundInternal(SoundFileObject sound, Transform newTransform = null, SoundChannelHelper helper = null)
+        internal SoundChannelHelper PlaySoundInternal(SoundFileObject sound, Transform newTransform = null, SoundChannelHelper helper = null)
         {
             if (!PlaybackChecks(sound)) return null;
 
@@ -576,7 +576,7 @@ namespace JSAM
             return helper;
         }
 
-        public SoundChannelHelper PlaySoundInternal(SoundFileObject sound, Vector3 position, SoundChannelHelper helper = null)
+        internal SoundChannelHelper PlaySoundInternal(SoundFileObject sound, Vector3 position, SoundChannelHelper helper = null)
         {
             if (!PlaybackChecks(sound)) return null;
 
@@ -596,7 +596,7 @@ namespace JSAM
         #endregion
 
         #region StopSound
-        public void StopAllSoundsInternal(bool stopInstantly = true)
+        internal void StopAllSoundsInternal(bool stopInstantly = true)
         {
             foreach (SoundChannelHelper h in soundHelpers)
             {
@@ -604,40 +604,40 @@ namespace JSAM
             }
         }
 
-        public SoundChannelHelper StopSoundInternal(SoundFileObject sound, Transform t = null, bool stopInstantly = true)
+        internal SoundChannelHelper StopSoundInternal(SoundFileObject sound, Transform t = null, bool stopInstantly = true)
         {
             if (!PlaybackChecks(sound)) return null;
 
             foreach (SoundChannelHelper helper in soundHelpers)
             {
                 if (helper.AudioSource == null) return null; // Prevent issues when called from OnDestroy
-                if (helper.Stop(sound, t, stopInstantly))
+                if (helper.StopIfPlaying(sound, t, stopInstantly))
                     return helper;
             }
             return null;
         }
 
-        public SoundChannelHelper StopSoundInternal(SoundFileObject sound, Vector3 pos, bool stopInstantly = true)
+        internal SoundChannelHelper StopSoundInternal(SoundFileObject sound, Vector3 pos, bool stopInstantly = true)
         {
             if (!PlaybackChecks(sound)) return null;
 
             foreach (SoundChannelHelper helper in soundHelpers)
             {
                 if (helper.AudioSource == null) return null; // Prevent issues when called from OnDestroy
-                if (helper.Stop(sound, pos, stopInstantly))
+                if (helper.StopIfPlaying(sound, pos, stopInstantly))
                     return helper;
             }
             return null;
         }
 
-        public bool StopSoundIfPlayingInternal(SoundFileObject sound, Transform trans = null, bool stopInstantly = true)
+        internal bool StopSoundIfPlayingInternal(SoundFileObject sound, Transform trans = null, bool stopInstantly = true)
         {
             if (!IsSoundPlayingInternal(sound, trans)) return false;
             StopSoundInternal(sound, trans, stopInstantly);
             return true;
         }
 
-        public bool StopSoundIfPlayingInternal(SoundFileObject sound, Vector3 pos, bool stopInstantly = true)
+        internal bool StopSoundIfPlayingInternal(SoundFileObject sound, Vector3 pos, bool stopInstantly = true)
         {
             if (!IsSoundPlayingInternal(sound, pos)) return false;
             StopSoundInternal(sound, pos, stopInstantly);
@@ -709,7 +709,7 @@ namespace JSAM
         }
 
         #region IsPlaying
-        public bool IsSoundPlayingInternal(SoundFileObject s, Transform trans)
+        internal bool IsSoundPlayingInternal(SoundFileObject s, Transform trans)
         {
             foreach (SoundChannelHelper helper in soundHelpers)
             {
@@ -720,7 +720,7 @@ namespace JSAM
             return false;
         }
 
-        public bool IsSoundPlayingInternal(SoundFileObject s, Vector3 pos)
+        internal bool IsSoundPlayingInternal(SoundFileObject s, Vector3 pos)
         {
             foreach (SoundChannelHelper helper in soundHelpers)
             {
@@ -747,7 +747,7 @@ namespace JSAM
             return false;
         }
 
-        public bool IsMusicPlayingInternal(MusicFileObject a, Transform trans = null)
+        internal bool IsMusicPlayingInternal(MusicFileObject a, Transform trans = null)
         {
             // MainMusic is not in musicHelpers — check it separately
             if (MainMusic.IsPlaying(a, trans)) return true;
@@ -759,7 +759,7 @@ namespace JSAM
             return false;
         }
 
-        public bool IsMusicPlayingInternal(MusicFileObject a, Vector3 pos)
+        internal bool IsMusicPlayingInternal(MusicFileObject a, Vector3 pos)
         {
             // MainMusic is not in musicHelpers — check it separately
             if (MainMusic.IsPlaying(a, pos)) return true;

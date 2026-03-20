@@ -48,7 +48,7 @@ namespace JSAM
         {
             if (AudioManagerInternal.IsQuitting) return;
 
-            helper.Stop(true);
+            helper.StopIfPlaying(true);
         }
 
         // Update is called once per frame
