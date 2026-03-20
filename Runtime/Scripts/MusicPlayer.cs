@@ -65,7 +65,7 @@ namespace JSAM
         {
             if (fadeBehaviour > FadeBehaviour.None)
             {
-                helper = AudioManager.FadeMusicIn(audio, fadeTime, !AudioManager.MainMusicHelper.AudioSource.isPlaying);
+                helper = AudioManager.FadeMusicIn(audio, fadeTime, !AudioManager.MainMusicHelper.IsPlaying());
             }
             else
             {
@@ -87,7 +87,7 @@ namespace JSAM
             {
                 case FadeBehaviour.None:
                 case FadeBehaviour.AdditiveFadeIn:
-                    if (AudioManager.MainMusicHelper.AudioSource.isPlaying)
+                    if (AudioManager.MainMusicHelper.IsPlaying())
                     {
                         time = AudioManager.MainMusicHelper.AudioSource.time;
                     }
@@ -98,7 +98,7 @@ namespace JSAM
                     }
                     break;
                 case FadeBehaviour.CrossFadeIn:
-                    if (keepPlaybackPosition && AudioManager.MainMusicHelper.AudioSource.isPlaying)
+                    if (keepPlaybackPosition && AudioManager.MainMusicHelper.IsPlaying())
                     {
                         time = AudioManager.FadeMainMusicOut(fadeTime).AudioSource.time;
                     }
@@ -120,7 +120,7 @@ namespace JSAM
         {
             var halfTime = fadeTime / 2;
 
-            if (keepPlaybackPosition && AudioManager.MainMusicHelper.AudioSource.isPlaying)
+            if (keepPlaybackPosition && AudioManager.MainMusicHelper.IsPlaying())
             {
                 oldHelper = AudioManager.FadeMainMusicOut(halfTime);
             }
@@ -128,7 +128,7 @@ namespace JSAM
             float time = 0;
             if (oldHelper)
             {
-                while (oldHelper.AudioSource.isPlaying)
+                while (oldHelper.IsPlaying())
                 {
                     time = oldHelper.AudioSource.time;
                     yield return null;

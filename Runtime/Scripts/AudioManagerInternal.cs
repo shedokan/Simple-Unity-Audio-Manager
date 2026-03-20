@@ -340,8 +340,7 @@ namespace JSAM
         {
             if (!PlaybackChecks(music)) return null;
 
-            if (isMain) PlayMusicInternal(music, null, MainMusic);
-            else PlayMusicInternal(music, null, null);
+            PlayMusicInternal(music, null, isMain ? MainMusic : null);
 
             return MainMusic;
         }
@@ -353,7 +352,7 @@ namespace JSAM
             if (!PlaybackChecks(music)) return null;
 
             bool helperOverride = helper != null;
-            if (helper == null) helper = GetFreeMusicHelper();
+            helper ??= GetFreeMusicHelper();
             if (helper == null) return null;
             if (!helperOverride)
             {
@@ -371,7 +370,7 @@ namespace JSAM
             if (!PlaybackChecks(music)) return null;
 
             bool helperOverride = helper != null;
-            if (helper == null) helper = GetFreeMusicHelper();
+            helper ??= GetFreeMusicHelper();
             if (helper == null) return null;
             if (!helperOverride)
             {
@@ -438,8 +437,7 @@ namespace JSAM
         {
             if (!PlaybackChecks(music)) return null;
 
-            MusicChannelHelper helper;
-            if (TryGetPlayingMusic(music, out helper))
+            if (TryGetPlayingMusic(music, out MusicChannelHelper helper))
             {
                 helper.BeginFadeOut(fadeOutTime);
             }
@@ -478,12 +476,11 @@ namespace JSAM
         #region StopMusic
         public void StopAllMusicInternal(bool stopInstantly)
         {
-            for (int i = 0; i < musicHelpers.Count; i++)
+            MainMusic.StopIfPlaying(stopInstantly);
+            
+            foreach (MusicChannelHelper helper in musicHelpers)
             {
-                if (musicHelpers[i].AudioSource.isPlaying)
-                {
-                    musicHelpers[i].Stop(stopInstantly);
-                }
+                helper.StopIfPlaying(stopInstantly);
             }
         }
 
@@ -491,18 +488,16 @@ namespace JSAM
         {
             if (!PlaybackChecks(music)) return null;
 
-            for (int i = 0; i < musicHelpers.Count; i++)
+            // Check MainMusic first (it is not in musicHelpers)
+            if (MainMusic.Stop(music, t, stopInstantly))
+                return MainMusic;
+
+            foreach (MusicChannelHelper helper in musicHelpers)
             {
-                if (musicHelpers[i].AudioSource == null) return null; // Prevent issues when called during OnApplicationQuit
-                if (music.Files.Contains(musicHelpers[i].AudioSource.clip))
-                {
-                    if (t != null && music.spatialize)
-                    {
-                        if (musicHelpers[i].SpatializationTarget != t) continue;
-                    }
-                    musicHelpers[i].Stop(stopInstantly);
-                    return musicHelpers[i];
-                }
+                // TODO: Consider removing as helper is checking this
+                if (helper.AudioSource == null) return null; // Prevent issues when called during OnApplicationQuit
+                if (helper.Stop(music, t, stopInstantly))
+                    return helper;
             }
             return null;
         }
@@ -511,15 +506,15 @@ namespace JSAM
         {
             if (!PlaybackChecks(music)) return null;
 
-            for (int i = 0; i < musicHelpers.Count; i++)
+            // Check MainMusic first (it is not in musicHelpers)
+            if (MainMusic.Stop(music, pos, stopInstantly))
+                return MainMusic;
+
+            foreach (MusicChannelHelper helper in musicHelpers)
             {
-                if (musicHelpers[i].AudioSource == null) return null; // Prevent issues when called from OnDestroy
-                if (music.Files.Contains(musicHelpers[i].AudioSource.clip))
-                {
-                    if (musicHelpers[i].SpatializationPosition != pos && music.spatialize) continue;
-                    musicHelpers[i].Stop(stopInstantly);
-                    return musicHelpers[i];
-                }
+                if (helper.AudioSource == null) return null; // Prevent issues when called from OnDestroy
+                if (helper.Stop(music, pos, stopInstantly))
+                    return helper;
             }
             return null;
         }
@@ -603,12 +598,9 @@ namespace JSAM
         #region StopSound
         public void StopAllSoundsInternal(bool stopInstantly = true)
         {
-            for (int i = 0; i < soundHelpers.Count; i++)
+            foreach (SoundChannelHelper h in soundHelpers)
             {
-                if (soundHelpers[i].AudioSource.isPlaying)
-                {
-                    soundHelpers[i].Stop(stopInstantly);
-                }
+                h.StopIfPlaying(stopInstantly);
             }
         }
 
@@ -616,18 +608,11 @@ namespace JSAM
         {
             if (!PlaybackChecks(sound)) return null;
 
-            for (int i = 0; i < soundHelpers.Count; i++)
+            foreach (SoundChannelHelper helper in soundHelpers)
             {
-                if (soundHelpers[i].AudioSource == null) return null; // Prevent issues when called from OnDestroy
-                if (sound.Files.Contains(soundHelpers[i].AudioSource.clip))
-                {
-                    if (t != null && sound.spatialize)
-                    {
-                        if (soundHelpers[i].SpatializationTarget != t) continue;
-                    }
-                    soundHelpers[i].Stop(stopInstantly);
-                    return soundHelpers[i];
-                }
+                if (helper.AudioSource == null) return null; // Prevent issues when called from OnDestroy
+                if (helper.Stop(sound, t, stopInstantly))
+                    return helper;
             }
             return null;
         }
@@ -636,15 +621,11 @@ namespace JSAM
         {
             if (!PlaybackChecks(sound)) return null;
 
-            for (int i = 0; i < soundHelpers.Count; i++)
+            foreach (SoundChannelHelper helper in soundHelpers)
             {
-                if (soundHelpers[i].AudioSource == null) return null; // Prevent issues when called from OnDestroy
-                if (sound.Files.Contains(soundHelpers[i].AudioSource.clip))
-                {
-                    if (soundHelpers[i].SpatializationPosition != pos && sound.spatialize) continue;
-                    soundHelpers[i].Stop(stopInstantly);
-                    return soundHelpers[i];
-                }
+                if (helper.AudioSource == null) return null; // Prevent issues when called from OnDestroy
+                if (helper.Stop(sound, pos, stopInstantly))
+                    return helper;
             }
             return null;
         }
@@ -730,40 +711,35 @@ namespace JSAM
         #region IsPlaying
         public bool IsSoundPlayingInternal(SoundFileObject s, Transform trans)
         {
-            for (int i = 0; i < soundHelpers.Count; i++)
+            foreach (SoundChannelHelper helper in soundHelpers)
             {
-                if (soundHelpers[i].AudioFile == s && soundHelpers[i].AudioSource.isPlaying)
-                {
-                    if (trans != null && s.spatialize)
-                    {
-                        if (soundHelpers[i].SpatializationTarget != trans) continue;
-                    }
+                if (helper.IsPlaying(s, trans))
                     return true;
-                }
             }
+
             return false;
         }
 
         public bool IsSoundPlayingInternal(SoundFileObject s, Vector3 pos)
         {
-            for (int i = 0; i < soundHelpers.Count; i++)
+            foreach (SoundChannelHelper helper in soundHelpers)
             {
-                if (soundHelpers[i].AudioFile == s && soundHelpers[i].AudioSource.isPlaying)
+                if (helper.IsPlaying(s, pos))
                 {
-                    if (soundHelpers[i].SpatializationPosition != pos && s.spatialize) continue;
                     return true;
                 }
             }
+
             return false;
         }
 
         public bool TryGetPlayingSound(SoundFileObject s, out SoundChannelHelper helper)
         {
-            for (int i = 0; i < soundHelpers.Count; i++)
+            foreach (SoundChannelHelper h in soundHelpers)
             {
-                if (soundHelpers[i].AudioFile == s && soundHelpers[i].AudioSource.isPlaying)
+                if (h.IsPlaying(s))
                 {
-                    helper = soundHelpers[i];
+                    helper = h;
                     return true;
                 }
             }
@@ -773,40 +749,42 @@ namespace JSAM
 
         public bool IsMusicPlayingInternal(MusicFileObject a, Transform trans = null)
         {
-            for (int i = 0; i < musicHelpers.Count; i++)
+            // MainMusic is not in musicHelpers — check it separately
+            if (MainMusic.IsPlaying(a, trans)) return true;
+
+            foreach (MusicChannelHelper helper in musicHelpers)
             {
-                if (musicHelpers[i].AudioFile == a && musicHelpers[i].AudioSource.isPlaying)
-                {
-                    if (trans != null && a.spatialize)
-                    {
-                        if (musicHelpers[i].SpatializationTarget != trans) continue;
-                    }
-                    return true;
-                }
+                if (helper.IsPlaying(a, trans)) return true;
             }
             return false;
         }
 
-        public bool IsMusicPlayingInternal(MusicFileObject s, Vector3 pos)
+        public bool IsMusicPlayingInternal(MusicFileObject a, Vector3 pos)
         {
-            for (int i = 0; i < musicHelpers.Count; i++)
+            // MainMusic is not in musicHelpers — check it separately
+            if (MainMusic.IsPlaying(a, pos)) return true;
+
+            foreach (MusicChannelHelper helper in musicHelpers)
             {
-                if (musicHelpers[i].AudioFile == s && musicHelpers[i].AudioSource.isPlaying)
-                {
-                    if (musicHelpers[i].SpatializationPosition != pos && s.spatialize) continue;
-                    return true;
-                }
+                if (helper.IsPlaying(a, pos)) return true;
             }
+
             return false;
         }
 
         public bool TryGetPlayingMusic(MusicFileObject a, out MusicChannelHelper helper)
         {
-            for (int i = 0; i < musicHelpers.Count; i++)
+            if (MainMusic.IsPlaying(a))
             {
-                if (musicHelpers[i].AudioFile == a && musicHelpers[i].AudioSource.isPlaying)
+                helper = MainMusic;
+                return true;
+            }
+            
+            foreach (MusicChannelHelper h in musicHelpers)
+            {
+                if (h.IsPlaying(a))
                 {
-                    helper = musicHelpers[i];
+                    helper = h;
                     return true;
                 }
             }

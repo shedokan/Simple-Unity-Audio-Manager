@@ -218,7 +218,7 @@ namespace JSAM
             else if (audioFile.loopMode <= LoopMode.LoopWithLoopPoints && !applicationPaused && !AudioListener.pause)
             {
                 // Disable self if not playing anymore
-                enabled = AudioSource.isPlaying;
+                enabled = IsPlaying();
             }
         }
 
@@ -254,15 +254,30 @@ namespace JSAM
             audioFile = file;
         }
 
-        public AudioSource Play(Transform t)
-        {
-            return Play(t, default);
-        }
+        // TODO: Consolidate between AudioFile = a and this
+        public bool AudioMatchesClip(BaseAudioFileObject a) =>
+            AudioSource != null && a.Files.Contains(AudioSource.clip);
 
-        public AudioSource Play(Vector3 pos)
-        {
-            return Play(null, pos);
-        }
+
+        public bool IsMatching(BaseAudioFileObject a, Vector3 pos) => 
+            AudioFile == a && (!a.spatialize || SpatializationPosition == pos);
+
+        public bool IsMatching(BaseAudioFileObject a, Transform trans) =>
+            AudioFile == a && (!a.spatialize || SpatializationTarget == trans);
+ 
+        public bool IsPlaying() =>
+            AudioSource != null && AudioSource.isPlaying;
+        public bool IsPlaying(BaseAudioFileObject a) =>
+            IsPlaying() && AudioFile == a;
+
+
+        public bool IsPlaying(BaseAudioFileObject a, Vector3 pos) => IsPlaying() && IsMatching(a, pos);
+
+        public bool IsPlaying(BaseAudioFileObject a, Transform trans) => IsPlaying() && IsMatching(a, trans);
+
+        public AudioSource Play(Transform t) => Play(t, default);
+
+        public AudioSource Play(Vector3 pos) => Play(null, pos);
 
         /// <summary>
         /// To play new sounds one after another using the same Helper, 
@@ -350,6 +365,47 @@ namespace JSAM
             enabled = false;
             AudioSource.loop = false;
             SpatializationTarget = null;
+        }
+        
+        public bool Stop(BaseAudioFileObject a, Transform trans, bool stopInstantly)
+        {
+            if (!IsMatching(a, trans))
+                return false;
+
+            Stop(stopInstantly);
+            return true;
+        }
+        
+        public bool Stop(BaseAudioFileObject a, Vector3 pos, bool stopInstantly)
+        {
+            if (!IsMatching(a, pos))
+                return false;
+
+            Stop(stopInstantly);
+            return true;
+        }
+
+        public virtual void StopIfPlaying(bool stopInstantly = true)
+        {
+            if (IsPlaying()) Stop(stopInstantly);
+        }
+        
+        public bool StopIfPlaying(BaseAudioFileObject a, Transform trans, bool stopInstantly)
+        {
+            if (!IsPlaying(a, trans))
+                return false;
+
+            Stop(stopInstantly);
+            return true;
+        }
+        
+        public bool StopIfPlaying(BaseAudioFileObject a, Vector3 pos, bool stopInstantly)
+        {
+            if (!IsPlaying(a, pos))
+                return false;
+
+            Stop(stopInstantly);
+            return true;
         }
 
         public virtual void TimeScaleChanged(float previousTimeScale)
