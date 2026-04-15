@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using JetBrains.Annotations;
 using UnityEngine;
 
 namespace JSAM
@@ -20,7 +21,7 @@ namespace JSAM
             {
                 bool missing = false;
                 if (instance == null) missing = true;
-                else if (instance.gameObject.scene == null) missing = true;
+                else if (!instance.gameObject || instance.gameObject.scene == null) missing = true;
                 if (missing)
                 {
                     instance = JSAMCompatibility.FindObjectOfType<AudioManager>();
@@ -43,41 +44,41 @@ namespace JSAM
         /// </summary>
         public AudioLibrary[] PreloadedLibraries => preloadedLibraries;
 
-        static AudioListener listener;
+        private static AudioListener _listener;
         public static AudioListener AudioListener
         {
             get
             {
-                if (!listener)
+                if (!_listener)
                 {
-                    listener = JSAMCompatibility.FindObjectOfType<AudioListener>();
+                    _listener = JSAMCompatibility.FindObjectOfType<AudioListener>();
                 }
-                return listener;
+                return _listener;
             }
         }
 
-        bool initialized = false;
+        private bool _initialized = false;
         /// <summary>
         /// True if AudioManager finishes setting up
         /// </summary>
-        public bool Initialized => initialized;
+        public bool Initialized => _initialized;
 
-        public static MusicChannelHelper MainMusicHelper { get => InternalInstance.MainMusic; }
-        public static MusicFileObject MainMusic { get { return MainMusicHelper.AudioFile; } }
+        public static MusicChannelHelper MainMusicHelper => InternalInstance.MainMusic;
+        public static MusicFileObject MainMusic => MainMusicHelper.AudioFile;
 
-        static AudioManagerInternal internalInstance;
+        private static AudioManagerInternal _internalInstance;
         public static AudioManagerInternal InternalInstance
         {
             get
             {
-                if (internalInstance == null)
+                if (_internalInstance == null)
                 {
                     if (Instance != null && Application.isPlaying)
                     {
-                        internalInstance = Instance.gameObject.AddComponent<AudioManagerInternal>();
+                        _internalInstance = Instance.gameObject.AddComponent<AudioManagerInternal>();
                     }
                 }
-                return internalInstance;
+                return _internalInstance;
             }
         }
 
@@ -127,7 +128,7 @@ namespace JSAM
         }
 
         // Use this for initialization
-        void Awake()
+        private void Awake()
         {
             if (JSAMSettings.Settings.DontDestroyOnLoad)
             {
@@ -148,10 +149,10 @@ namespace JSAM
                 InternalInstance.LoadAudioLibrary(library);
             }
 
-            initialized = true;
+            _initialized = true;
         }
 
-        static SoundFileObject SoundFileFromEnum<T>(T e) where T : Enum
+        private static SoundFileObject SoundFileFromEnum<T>([NotNull] T e) where T : Enum
         {
             return InternalInstance.AudioFileFromEnum(e) as SoundFileObject;
         }
@@ -166,7 +167,7 @@ namespace JSAM
         /// <param name="helper">Optional: The specific channel you want to play the sound from. 
         /// <para>Good if you want an entity to only emit one sound at any time</para></param>
         /// <returns>The Sound Channel Helper playing the sound</returns>
-        public static SoundChannelHelper PlaySound<T>(T sound, Transform transform = null, SoundChannelHelper helper = null) where T : Enum
+        public static SoundChannelHelper PlaySound<T>([NotNull] T sound, Transform transform = null, SoundChannelHelper helper = null) where T : Enum
         {
             return InternalInstance.PlaySoundInternal(SoundFileFromEnum(sound), transform, helper);
         }
@@ -180,7 +181,7 @@ namespace JSAM
         /// <param name="helper">Optional: The specific channel you want to play the sound from. 
         /// <para>Good if you want an entity to only emit one sound at any time</para></param>
         /// <returns><inheritdoc cref="PlaySound{T}(T, Transform, SoundChannelHelper)" path="/returns"/></returns>
-        public static SoundChannelHelper PlaySound<T>(T sound, Vector3 position, SoundChannelHelper helper = null) where T : Enum
+        public static SoundChannelHelper PlaySound<T>([NotNull] T sound, Vector3 position, SoundChannelHelper helper = null) where T : Enum
         {
             return InternalInstance.PlaySoundInternal(SoundFileFromEnum(sound), position, helper);
         }
@@ -193,7 +194,7 @@ namespace JSAM
         /// <param name="helper">Optional: The specific channel you want to play the sound from. 
         /// <para>Good if you want an entity to only emit one sound at any time</para></param>
         /// <returns><inheritdoc cref="PlaySound{T}(T, Transform, SoundChannelHelper)" path="/returns"/></returns>
-        public static SoundChannelHelper PlaySound(SoundFileObject sound, Transform transform = null, SoundChannelHelper helper = null) => InternalInstance.PlaySoundInternal(sound, transform, helper);
+        public static SoundChannelHelper PlaySound([NotNull] SoundFileObject sound, Transform transform = null, SoundChannelHelper helper = null) => InternalInstance.PlaySoundInternal(sound, transform, helper);
 
         /// <summary>
         /// <inheritdoc cref="PlaySound{T}(T, Transform, SoundChannelHelper)"/>
@@ -203,7 +204,7 @@ namespace JSAM
         /// <param name="helper">Optional: The specific channel you want to play the sound from. 
         /// <para>Good if you want an entity to only emit one sound at any time</para></param>
         /// <returns><inheritdoc cref="PlaySound{T}(T, Transform, SoundChannelHelper)" path="/returns"/></returns>
-        public static SoundChannelHelper PlaySound(SoundFileObject sound, Vector3 position, SoundChannelHelper helper = null) => InternalInstance.PlaySoundInternal(sound, position, helper);
+        public static SoundChannelHelper PlaySound([NotNull] SoundFileObject sound, Vector3 position, SoundChannelHelper helper = null) => InternalInstance.PlaySoundInternal(sound, position, helper);
         #endregion
 
         #region StopSound
@@ -362,7 +363,7 @@ namespace JSAM
 
         #endregion
 
-        static MusicFileObject MusicFileFromEnum<T>(T e) where T : Enum
+        static MusicFileObject MusicFileFromEnum<T>([NotNull] T e) where T : Enum
         {
             return InternalInstance.AudioFileFromEnum(e) as MusicFileObject;
         }
@@ -376,7 +377,7 @@ namespace JSAM
         /// <param name="music">Enum value for the music to be played. You can find this in the AudioLibrary</param>
         /// <param name="isMainMusic">If true, defines the music as the "Main Music", making future operations easier</param>
         /// <returns>The Music Channel helper playing the sound, useful for transitions, like copying the playback position to the next music</returns>
-        public static MusicChannelHelper PlayMusic<T>(T music, bool isMainMusic) where T : Enum
+        public static MusicChannelHelper PlayMusic<T>([NotNull] T music, bool isMainMusic) where T : Enum
         {
             return InternalInstance.PlayMusicInternal(MusicFileFromEnum(music), isMainMusic);
         }
@@ -387,7 +388,7 @@ namespace JSAM
         /// <param name="music"></param>
         /// <param name="isMainMusic">If true, defines the music as the "Main music", making future operations easier</param>
         /// <returns><inheritdoc cref="PlayMusic{T}(T, bool)" path="/returns"/></returns>
-        public static MusicChannelHelper PlayMusic(MusicFileObject music, bool isMainMusic)
+        public static MusicChannelHelper PlayMusic([NotNull] MusicFileObject music, bool isMainMusic)
         {
             return InternalInstance.PlayMusicInternal(music, isMainMusic);
         }
@@ -402,7 +403,7 @@ namespace JSAM
         /// <param name="helper">Optional: The specific channel you want to play the sound from. 
         /// <para>Good if you want an entity to only play a single music at any time</para></param>
         /// <returns><inheritdoc cref="PlayMusic{T}(T, bool)" path="/returns"/></returns>
-        public static MusicChannelHelper PlayMusic<T>(T music, Transform transform = null, MusicChannelHelper helper = null) where T : Enum
+        public static MusicChannelHelper PlayMusic<T>([NotNull] T music, Transform transform = null, MusicChannelHelper helper = null) where T : Enum
         {
             return InternalInstance.PlayMusicInternal(MusicFileFromEnum(music), transform, helper);
         }
@@ -416,7 +417,7 @@ namespace JSAM
         /// <param name="helper">Optional: The specific channel you want to play the sound from. 
         /// <para>Good if you want an entity to only play a single music at any time</para></param>
         /// <returns><inheritdoc cref="PlayMusic{T}(T, bool)" path="/returns"/></returns>
-        public static MusicChannelHelper PlayMusic<T>(T music, Vector3 position, MusicChannelHelper helper = null) where T : Enum
+        public static MusicChannelHelper PlayMusic<T>([NotNull] T music, Vector3 position, MusicChannelHelper helper = null) where T : Enum
         {
             return InternalInstance.PlayMusicInternal(MusicFileFromEnum(music), position, helper);
         }
@@ -439,7 +440,7 @@ namespace JSAM
         /// <param name="helper">Optional: The specific channel you want to play the sound from. 
         /// <para>Good if you want an entity to only play a single music at any time</para></param>
         /// <returns><inheritdoc cref="PlayMusic{T}(T, bool)" path="/returns"/></returns>
-        public static MusicChannelHelper PlayMusic(MusicFileObject music, Vector3 position, MusicChannelHelper helper = null) => InternalInstance.PlayMusicInternal(music, position, helper);
+        public static MusicChannelHelper PlayMusic([NotNull] MusicFileObject music, Vector3 position, MusicChannelHelper helper = null) => InternalInstance.PlayMusicInternal(music, position, helper);
         #endregion
 
         #region FadeMusic
@@ -452,7 +453,7 @@ namespace JSAM
         /// <param name="fadeInTime">Amount of time in seconds the fade will last</param>
         /// <param name="isMainmusic">If true, defines the music as the "Main music"</param>
         /// <returns></returns>
-        public static MusicChannelHelper FadeMusicIn<T>(T music, float fadeInTime, bool isMainmusic = false) where T : Enum
+        public static MusicChannelHelper FadeMusicIn<T>([NotNull] T music, float fadeInTime, bool isMainmusic = false) where T : Enum
         {
             return InternalInstance.FadeMusicInInternal(MusicFileFromEnum(music), fadeInTime, isMainmusic);
         }
@@ -465,7 +466,7 @@ namespace JSAM
         /// <param name="fadeInTime">Amount of time in seconds the fade will last</param>
         /// <param name="isMainmusic">If true, defines the music as the "Main music"</param>
         /// <returns></returns>
-        public static MusicChannelHelper FadeMusicIn(MusicFileObject music, float fadeInTime, bool isMainmusic = false)
+        public static MusicChannelHelper FadeMusicIn([NotNull] MusicFileObject music, float fadeInTime, bool isMainmusic = false)
         {
             return InternalInstance.FadeMusicInInternal(music, fadeInTime, isMainmusic);
         }
@@ -490,7 +491,7 @@ namespace JSAM
         /// <param name="music"></param>
         /// <param name="fadeOutTime">Amount of time in seconds the fade will last</param>
         /// <returns></returns>
-        public static MusicChannelHelper FadeMusicOut<T>(T music, float fadeOutTime) where T : Enum
+        public static MusicChannelHelper FadeMusicOut<T>([NotNull] T music, float fadeOutTime) where T : Enum
         {
             return InternalInstance.FadeMusicOutInternal(MusicFileFromEnum(music), fadeOutTime);
         }
@@ -502,7 +503,7 @@ namespace JSAM
         /// <param name="helper">Music Channel Helper to fade out</param>
         /// <param name="fadeOutTime">Amount of time in seconds the fade will last</param>
         /// <returns></returns>
-        public MusicChannelHelper FadeMusicOut(MusicChannelHelper helper, float fadeOutTime)
+        public MusicChannelHelper FadeMusicOut([NotNull] MusicChannelHelper helper, float fadeOutTime)
         {
             return InternalInstance.FadeMusicOutInternal(helper, fadeOutTime);
         }
@@ -513,14 +514,14 @@ namespace JSAM
         /// </summary>
         /// <param name="music">The enum of the music in question, check AudioManager to see what enums you can use</param>
         /// <returns>True if music that was played through PlayMusic is currently playing</returns>
-        public static bool IsMusicPlaying<T>(T music) where T : Enum =>
+        public static bool IsMusicPlaying<T>([NotNull] T music) where T : Enum =>
             InternalInstance.IsMusicPlayingInternal(MusicFileFromEnum(music));
 
         /// <summary>
         /// </summary>
         /// <param name="music">The enum of the music in question, check AudioManager to see what enums you can use</param>
         /// <returns></returns>
-        public static bool IsMusicPlaying(MusicFileObject music) => InternalInstance.IsMusicPlayingInternal(music);
+        public static bool IsMusicPlaying([NotNull] MusicFileObject music) => InternalInstance.IsMusicPlayingInternal(music);
 
         /// <summary>
         /// Very similar use case as TryGetComponent
@@ -529,7 +530,7 @@ namespace JSAM
         /// <param name="music">The enum of the music in question, check AudioManager to see what enums you can use</param>
         /// <param name="helper">This helper reference will be given a value if the method returns true</param>
         /// <returns>The first Music Helper that's currently playing the specified music</returns>
-        public static bool TryGetPlayingMusic<T>(T music, out MusicChannelHelper helper) where T : Enum =>
+        public static bool TryGetPlayingMusic<T>([NotNull] T music, out MusicChannelHelper helper) where T : Enum =>
             InternalInstance.TryGetPlayingMusic(MusicFileFromEnum(music), out helper);
 
         /// <summary>
@@ -538,7 +539,7 @@ namespace JSAM
         /// <param name="music">The enum of the music in question, check AudioManager to see what enums you can use</param>
         /// <param name="helper">This helper reference will be given a value if the method returns true</param>
         /// <returns>The first Music Helper that's currently playing the specified music</returns>
-        public static bool TryGetPlayingMusic(MusicFileObject music, out MusicChannelHelper helper) =>
+        public static bool TryGetPlayingMusic([NotNull] MusicFileObject music, out MusicChannelHelper helper) =>
             InternalInstance.TryGetPlayingMusic(music, out helper);
         #endregion
 
@@ -558,7 +559,7 @@ namespace JSAM
         /// <param name="stopInstantly">Optional: If false, will allow music to transition out using it's transition settings. 
         /// Otherwise, will immediately end playback</param>
         /// <returns>The Music Channel helper playing the sound, useful for transitions, like copying the playback position to the next music</returns>
-        public static MusicChannelHelper StopMusic<T>(T music, Transform transform = null, bool stopInstantly = true) where T : Enum
+        public static MusicChannelHelper StopMusic<T>([NotNull] T music, Transform transform = null, bool stopInstantly = true) where T : Enum
         {
             return InternalInstance.StopMusicInternal(MusicFileFromEnum(music), transform, stopInstantly);
         }
@@ -572,7 +573,7 @@ namespace JSAM
         /// <param name="stopInstantly">Optional: If false, will allow music to transition out using it's transition settings. 
         /// Otherwise, will immediately end playback</param>
         /// <returns><inheritdoc cref="StopMusic{T}(T, Transform, bool)"/></returns>
-        public static MusicChannelHelper StopMusic<T>(T music, Vector3 position, bool stopInstantly = true) where T : Enum
+        public static MusicChannelHelper StopMusic<T>([NotNull] T music, Vector3 position, bool stopInstantly = true) where T : Enum
         {
             return InternalInstance.StopMusicInternal(MusicFileFromEnum(music), position, stopInstantly);
         }
@@ -585,7 +586,7 @@ namespace JSAM
         /// <param name="stopInstantly">Optional: If false, will allow music to transition out using it's transition settings. 
         /// Otherwise, will immediately end playback</param>
         /// <returns><inheritdoc cref="StopMusic{T}(T, Transform, bool)"/></returns>
-        public static MusicChannelHelper StopMusic(MusicFileObject music, Transform transform = null, bool stopInstantly = true)
+        public static MusicChannelHelper StopMusic([NotNull] MusicFileObject music, Transform transform = null, bool stopInstantly = true)
         {
             return InternalInstance.StopMusicInternal(music, transform, stopInstantly);
         }
@@ -598,7 +599,7 @@ namespace JSAM
         /// <param name="stopInstantly">Optional: If false, will allow music to transition out using it's transition settings. 
         /// Otherwise, will immediately end playback</param>
         /// <returns><inheritdoc cref="StopMusic{T}(T, Transform, bool)"/></returns>
-        public static MusicChannelHelper StopMusic(MusicFileObject music, Vector3 position, bool stopInstantly = true)
+        public static MusicChannelHelper StopMusic([NotNull] MusicFileObject music, Vector3 position, bool stopInstantly = true)
         {
             return InternalInstance.StopMusicInternal(music, position, stopInstantly);
         }
@@ -612,7 +613,7 @@ namespace JSAM
         /// <param name="stopInstantly">Optional: If false, will allow music to transition out using it's transition settings. 
         /// Otherwise, will immediately end playback</param>
         /// <returns>True if music was stopped successfully, false if music wasn't playing</returns>
-        public static bool StopMusicIfPlaying<T>(T music, Transform transform = null, bool stopInstantly = true) where T : Enum
+        public static bool StopMusicIfPlaying<T>([NotNull] T music, Transform transform = null, bool stopInstantly = true) where T : Enum
         {
             return InternalInstance.StopMusicIfPlayingInternal(MusicFileFromEnum(music), transform, stopInstantly);
         }
@@ -626,7 +627,7 @@ namespace JSAM
         /// <param name="stopInstantly">Optional: If false, will allow music to transition out using it's transition settings. 
         /// Otherwise, will immediately end playback</param>
         /// <returns><inheritdoc cref="StopMusicIfPlaying{T}(T, Transform, bool)"/></returns>
-        public static bool StopMusicIfPlaying<T>(T music, Vector3 position, bool stopInstantly = true) where T : Enum =>
+        public static bool StopMusicIfPlaying<T>([NotNull] T music, Vector3 position, bool stopInstantly = true) where T : Enum =>
             InternalInstance.StopMusicIfPlayingInternal(MusicFileFromEnum(music), position, stopInstantly);
 
         /// <summary>
@@ -638,7 +639,7 @@ namespace JSAM
         /// <param name="stopInstantly">Optional: If false, will allow music to transition out using it's transition settings. 
         /// Otherwise, will immediately end playback</param>
         /// <returns><inheritdoc cref="StopMusicIfPlaying{T}(T, Transform, bool)"/></returns>
-        public static bool StopMusicIfPlaying(MusicFileObject music, Transform transform = null, bool stopInstantly = true) =>
+        public static bool StopMusicIfPlaying([NotNull] MusicFileObject music, Transform transform = null, bool stopInstantly = true) =>
             InternalInstance.StopMusicIfPlayingInternal(music, transform, stopInstantly);
 
         /// <summary>
@@ -650,7 +651,7 @@ namespace JSAM
         /// <param name="stopInstantly">Optional: If false, will allow music to transition out using it's transition settings. 
         /// Otherwise, will immediately end playback</param>
         /// <returns><inheritdoc cref="StopMusicIfPlaying{T}(T, Transform, bool)"/></returns>
-        public static bool StopMusicIfPlaying(MusicFileObject music, Vector3 position, bool stopInstantly = true) =>
+        public static bool StopMusicIfPlaying([NotNull] MusicFileObject music, Vector3 position, bool stopInstantly = true) =>
             InternalInstance.StopMusicIfPlayingInternal(music, position, stopInstantly);
         #endregion
 
@@ -666,7 +667,7 @@ namespace JSAM
         /// </summary>
         /// <param name="track"></param>
         /// <returns></returns>
-        public static float GetVolume(VolumeTrack track)
+        public static float GetVolume([NotNull] VolumeTrack track)
         {
             var data = InternalInstance.GetVolumeData(track);
             return Convert.ToInt16(!data.Muted) * data.Volume;
@@ -676,7 +677,7 @@ namespace JSAM
         /// </summary>
         /// <param name="track"></param>
         /// <returns></returns>
-        public static float GetModifiedVolume(VolumeTrack track) => GetVolume() * GetVolume(track);
+        public static float GetModifiedVolume([NotNull] VolumeTrack track) => GetVolume() * GetVolume(track);
 
         /// <summary>
         /// Sets the volume of the "Master" track. 
@@ -693,16 +694,16 @@ namespace JSAM
         /// </summary>
         /// <param name="track"></param>
         /// <param name="volume"></param>
-        public static void SetVolume(VolumeTrack track, float volume)
+        public static void SetVolume([NotNull] VolumeTrack track, float volume)
         {
             volume = Mathf.Clamp01(volume);
 
-            var data = internalInstance.GetVolumeData(track);
+            var data = _internalInstance.GetVolumeData(track);
 
-            if (data.Volume == volume) return;
+            if (Mathf.Approximately(data.Volume, volume)) return;
 
             data.Volume = volume;
-            internalInstance.SetVolumeData(track, data);
+            _internalInstance.SetVolumeData(track, data);
 
             InvokeVolumeEvents(track, data);
         }
@@ -717,7 +718,7 @@ namespace JSAM
         /// </summary>
         /// <param name="track"></param>
         /// <returns></returns>
-        public static bool IsMuted(VolumeTrack track) => InternalInstance.GetVolumeData(track).Muted;
+        public static bool IsMuted([NotNull] VolumeTrack track) => InternalInstance.GetVolumeData(track).Muted;
 
         /// <summary>
         /// Sets the mute state of the "Master" track. 
@@ -734,32 +735,31 @@ namespace JSAM
         /// </summary>
         /// <param name="track"></param>
         /// <param name="muted"></param>
-        public static void SetMute(VolumeTrack track, bool muted)
+        public static void SetMute([NotNull] VolumeTrack track, bool muted)
         {
-            var data = internalInstance.GetVolumeData(track);
+            var data = _internalInstance.GetVolumeData(track);
 
             if (data.Muted == muted) return;
 
             data.Muted = muted;
-            internalInstance.SetVolumeData(track, data);
+            _internalInstance.SetVolumeData(track, data);
 
             InvokeVolumeEvents(track, data);
         }
 
-        static void InvokeVolumeEvents(VolumeTrack track, AudioManagerInternal.VolumeData trackData)
+        static void InvokeVolumeEvents([NotNull] VolumeTrack track, AudioManagerInternal.VolumeData trackData)
         {
             var realVolume = GetModifiedVolume(track);
             OnVolumeChanged[track]?.Invoke(trackData.Volume, realVolume);
             OnAnyVolumeChanged?.Invoke(track, trackData.Volume, trackData.Volume);
 
-            if (track != JSAMSettings.Settings.MasterTrack) return;
-
             var masterTrack = JSAMSettings.Settings.MasterTrack;
-            var masterData = internalInstance.GetVolumeData(masterTrack);
+            if (track != masterTrack) return;
+
             foreach (var t in JSAMSettings.Settings.Tracks)
             {
                 if (t == track) continue;
-                var data = internalInstance.GetVolumeData(t);
+                var data = _internalInstance.GetVolumeData(t);
                 realVolume = GetModifiedVolume(t);
                 OnVolumeChanged[t]?.Invoke(data.Volume, realVolume);
                 OnAnyVolumeChanged?.Invoke(t, data.Volume, realVolume);
@@ -772,7 +772,7 @@ namespace JSAM
         /// playback calls
         /// </summary>
         /// <param name="library"></param>
-        public static void LoadAudioLibrary(AudioLibrary library)
+        public static void LoadAudioLibrary([NotNull] AudioLibrary library)
         {
             InternalInstance.LoadAudioLibrary(library);
         }
@@ -781,7 +781,7 @@ namespace JSAM
         /// Unloads an AudioLibrary, freeing it from memory
         /// </summary>
         /// <param name="library"></param>
-        public static void UnloadAudioLibrary(AudioLibrary library)
+        public static void UnloadAudioLibrary([NotNull] AudioLibrary library)
         {
             InternalInstance.UnloadAudioLibrary(library);
         }

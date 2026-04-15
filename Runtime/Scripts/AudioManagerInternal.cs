@@ -686,7 +686,7 @@ namespace JSAM
             for (int i = 0; i < soundHelpers.Count; i++)
             {
                 var helper = soundHelpers[i];
-                if (helper.IsFree)
+                if (helper != null && helper.IsFree)
                 {
                     return i;
                 }
